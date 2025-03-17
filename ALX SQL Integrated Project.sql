@@ -133,6 +133,21 @@ SELECT *
 FROM water_source
 ORDER BY number_of_people_served DESC;
 
+-- MCQ 1 Q1: What is the address of Bello Azibo?
+SELECT address
+FROM employee
+WHERE employee_name = "Bello Azibo";
+
+-- MCQ 1 Q2: What is the name and phone number of our Microbiologist?
+SELECT employee_name, phone_number
+FROM employee
+WHERE position = "Micro Biologist";
+
+-- MCQ 1 Q3: What is the source_id of the water source shared by the most number of people?
+SELECT *
+FROM water_source
+ORDER BY number_of_people_served DESC;
+
 -- MCQ 1 QUESTION 6
 SELECT *
 FROM Employee e
