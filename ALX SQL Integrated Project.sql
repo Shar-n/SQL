@@ -148,14 +148,57 @@ SELECT *
 FROM water_source
 ORDER BY number_of_people_served DESC;
 
--- MCQ 1 QUESTION 6
+-- MCQ 1 Q4: What is the population of Maji Ndogo? 
+SELECT *
+FROM data_dictionary WHERE description LIKE "%population%";
+
+SELECT * 
+FROM global_water_access 
+WHERE name = "Maji Ndogo";
+
+-- MCQ 1 Q5: Which SQL query returns records of employees who are Civil Engineers residing in Dahabu or living on an avenue?
+SELECT *
+FROM employee
+WHERE position = 'Civil Engineer' AND (province_name = 'Dahabu' OR address LIKE '%Avenue%');
+
+-- MCQ 1 Q6: Create a query to identify potentially suspicious field workers based on an anonymous tip. This is the description we are given:
+-- The employee’s phone number contained the digits 86 or 11. 
+-- The employee’s last name started with either an A or an M. 
+-- The employee was a Field Surveyor.
 SELECT *
 FROM Employee e
 WHERE (e.employee_name LIKE '%A%' OR e.employee_name LIKE '%M%')
   AND (e.phone_number LIKE '%86%' OR e.phone_number LIKE '%11%')
   AND position = "Field Surveyor";
 
--- MCQ 2
+-- MCQ 1 Q7: What is the result of the following query? Choose the most appropriate description of the results set.
+SELECT *
+FROM well_pollution
+WHERE description LIKE 'Clean_%' OR results = 'Clean' AND biological < 0.01;
+
+--  Answer: 4916 records are returned. This query describes the pollution samples that had an insignificant amount of biological contamination.
+
+-- MCQ 1 Q8: Which query will identify the records with a quality score of 10, visited more than once?
+SELECT * 
+FROM water_quality
+WHERE visit_count >= 2 AND subjective_quality_score = 10
+
+-- MCQ 1 Q9: You have been given a task to correct the phone number for the employee named 'Bello Azibo'.
+	-- The correct number is +99643864786.
+	-- Write the SQL query to accomplish this.
+UPDATE employee
+SET phone_number = '+99643864786'
+WHERE employee_name = 'Bello Azibo';
+
+--MCQ 1 Q10: How many rows of data are returned for the following query?
+SELECT * 
+FROM well_pollution
+WHERE description
+IN ('Parasite: Cryptosporidium', 'biologically contaminated')
+OR (results = 'Clean' AND biological > 0.01);
+--Answer: 570 
+
+-- Part 2
 SELECT * FROM employee;
 
 -- Create email address
@@ -401,17 +444,19 @@ WHERE time_in_queue != 0
 GROUP BY hour_of_day
 ORDER BY hour_of_day;
 
--- MCQ 2 Q1
+-- MCQ 2 Q1: Which SQL query will produce the date format "DD Month YYYY" from the time_of_record column in the visits table, as a single column?
+-- Note: Monthname() acts in a similar way to DAYNAME().
 SELECT CONCAT(day(time_of_record), " ", monthname(time_of_record), " ", year(time_of_record)) FROM visits;
 
--- Q3
+-- Q3: What are the names of the two worst-performing employees who visited the fewest sites, and how many sites did the worst-performing employee visit? 
+-- Modify your queries from the “Honouring the workers” section.
 SELECT assigned_employee_id, COUNT(visit_count) AS NO
 FROM visits
 GROUP BY assigned_employee_id
 ORDER BY no ASC
 LIMIT 2;
 
--- Q4
+-- Q4: What does the following query do?
 SELECT 
     location_id,
     time_in_queue,
@@ -422,30 +467,35 @@ WHERE
 visit_count > 1 -- Only shared taps were visited > 1
 ORDER BY 
     location_id, time_of_record;
-    
--- Q5
-SELECT TRIM('33 Angelique Kidjo Avenue  ');
+-- Answer: It computes an average queue time for shared taps visited more than once, which is updated each time a source is visited.
 
--- Q6
+-- Q5: One of our employees, Farai Nia, lives at 33 Angelique Kidjo Avenue. What would be the result if we TRIM() her address?
+SELECT TRIM('33 Angelique Kidjo Avenue  ');
+--Answer: ‘33 Angelique Kidjo Avenue’
+
+-- Q6: How many employees live in Dahabu?
 SELECT COUNT(town_name)
 FROM employee
 WHERE town_name = "Dahabu";
 
--- Q7
+-- Q7: How many employees live in Harare, Kilimani?
 SELECT COUNT(town_name)
 FROM employee
 WHERE town_name = "Harare" AND province_name = "Kilimani";
 
--- Q9
+-- Q8: How many people share a well on average?
+
+-- Q9: Consider the query we used to calculate the total number of people served:
 SELECT
 SUM(number_of_people_served) AS population_served
 FROM water_source
 WHERE type_of_water_source LIKE "%tap%"
 ORDER BY population_served;
+-- Which of the following lines of code will calculate the total number of people using some sort of tap?
+--Answer: WHERE type_of_water_source LIKE "%tap%"
 
 
-
--- MCQ3
+-- Part3
 DROP TABLE IF EXISTS `auditor_report`;
 CREATE TABLE `auditor_report` (
 `location_id` VARCHAR(32),
@@ -918,12 +968,68 @@ FROM incorrect_records
 WHERE employee_name NOT IN (SELECT employee_name FROM suspect_list)
 AND statements LIKE "%cash%";
 
+-- MCQ 3 Q1: The following query results in 2,698 rows of data being retrieved, but the auditor_report table only has 1,620 rows. Analyse the query and select the reason why this discrepancy occurs.
+-- Hint: Think about the type of relationship between our tables.
+SELECT
+    auditorRep.location_id,
+    visitsTbl.record_id,
+    Empl_Table.employee_name,
+    auditorRep.true_water_source_score AS auditor_score,
+    wq.subjective_quality_score AS employee_score
+FROM auditor_report AS auditorRep
+JOIN visits AS visitsTbl
+ON auditorRep.location_id = visitsTbl.location_id
+JOIN water_quality AS wq
+ON visitsTbl.record_id = wq.record_id
+JOIN employee as Empl_Table
+ON Empl_Table.assigned_employee_id = visitsTbl.assigned_employee_id;
 
+--Answer: The visits table has multiple records for each location_id, which when joined with auditor_report, results in multiple records for each location_id.
 
+-- Q2: What is the function of Incorrect_records in the following query?
+WITH Incorrect_records AS ( −− This CTE fetches all of the records with wrong scores
+SELECT
+    auditorRep.location_id,
+    visitsTbl.record_id,
+    Empl_Table.employee_name,
+    auditorRep.true_water_source_score AS auditor_score,
+    wq.subjective_quality_score AS employee_score
+FROM auditor_report AS auditorRep
+JOIN visits AS visitsTbl
+ON auditorRep.location_id = visitsTbl.location_id
+JOIN water_quality AS wq
+ON visitsTbl.record_id = wq.record_id
+JOIN employee as Empl_Table
+ON Empl_Table.assigned_employee_id = visitsTbl.assigned_employee_id
+WHERE visitsTbl.visit_count =1 AND auditorRep.true_water_source_score != wq.subjective_quality_score)
 
+SELECT
+    employee_name,
+    count(employee_name)
+FROM Incorrect_records
+GROUP BY Employee_name;
+-- Answer: Incorrect_records filters and organises records with different scores between auditor and employee, preparing a tailored dataset for the main query.
 
+-- Q3: In the suspect_list CTE, a subquery is used. What type of subquery is it, and what is its purpose in the query?
+suspect_list AS (
+SELECT employee_name, number_of_mistakes
+FROM error_count
+WHERE number_of_mistakes > (SELECT AVG(number_of_mistakes) FROM error_count))
 
--- Q9
+--Answer: The subquery is a scalar subquery used to calculate the average number_of_mistakes for comparison.
+
+--Q4: A colleague proposed the following CTE as an alternative to the suspect_list we used previously, but it does not give the desired results. What will be the result of this subquery?
+suspect_list AS (
+    SELECT ec1.employee_name, ec1.number_of_mistakes
+    FROM error_count ec1
+    WHERE ec1.number_of_mistakes >= (
+        SELECT AVG(ec2.number_of_mistakes)
+        FROM error_count ec2
+        WHERE ec2.employee_name = ec1.employee_name))
+--Answer: The subquery is a correlated subquery that returns all of the employees that made errors.
+	
+-- Q9: Which of the following “suspects” is connected to the following civilian statement:
+-- “Suspicion coloured villagers' descriptions of an official's aloof demeanour and apparent laziness. The reference to cash transactions casts doubt on their motives.”
 SELECT employee_name, location_id, statements
 FROM incorrect_records
 WHERE statements LIKE "%Suspicion%" AND
@@ -934,8 +1040,22 @@ FROM incorrect_records
 WHERE statements LIKE "%Suspicion colored villagers' descriptions of an official's aloof demeanor and apparent laziness. The reference to cash transactions cast doubt on their motives%" AND
 employee_name IN ("Bello Azibo", "Zuriel Matembo", "Malachi Mavuso","Lalitha Kaburi");
 
+-- Q10: Consider the provided SQL query. What does it do?
+SELECT
+auditorRep.location_id,
+visitsTbl.record_id,
+auditorRep.true_water_source_score AS auditor_score,
+wq.subjective_quality_score AS employee_score,
+wq.subjective_quality_score - auditorRep.true_water_source_score  AS score_diff
+FROM auditor_report AS auditorRep
+JOIN visits AS visitsTbl
+ON auditorRep.location_id = visitsTbl.location_id
+JOIN water_quality AS wq
+ON visitsTbl.record_id = wq.record_id
+WHERE (wq.subjective_quality_score - auditorRep.true_water_source_score) > 9;
+-- Answer: The query retrieves the auditor records where employees assigned very high scores to very poor water sources.
 
--- MCQ 4
+-- Part 4
 -- Start by joining location to visits.
 SELECT
 loc.province_name,
@@ -1251,11 +1371,28 @@ AND ( results != "Clean"
 OR type_of_water_source IN ("river", "tap_in_home_broken")
 OR (type_of_water_source = "shared_tap" AND visits.time_in_queue >= 30));
 
--- MCQ 4 Q1
--- How many UV filters do we have to install in total?
+-- MCQ 4 Q1: How many UV filters do we have to install in total?
 SELECT *
 FROM project_progress
 WHERE Improvement LIKE "%UV%";
+
+-- Q5: Which towns should we upgrade shared taps first?
+
+-- Answer: Zuri, Abidjan, Bello - 71%, 53% and 53% of the population use shared taps in each of these towns.
+
+-- Q6: Which of the following improvements is suggested for a chemically contaminated well with a queue time of over 30 minutes?
+
+-- Answer: Install RO filter.
+-- Q7: What is the maximum percentage of the population using rivers in a single town in the Amanzi province?
+SELECT MAX(river)
+FROM town_aggregated_water_access
+WHERE province_name = 'Amanzi';
+
+-- Q8: In which province(s) do all towns have less than 50% access to home taps (including working and broken)?
+SELECT province_name
+FROM town_aggregated_water_access
+GROUP BY province_name
+HAVING max(tap_in_home + tap_in_home_broken) < 50;
 
 -- Q10
 SELECT
